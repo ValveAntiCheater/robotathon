@@ -48,6 +48,9 @@ GIT PUSH (Uploading your changes on the repository) Instruction:
 // from "sdkconfig.defaults" with:
 //    CONFIG_BLUEPAD32_USB_CONSOLE_ENABLE=n
 
+// Setting LED Variable to 2
+int LED = 2;
+
 GamepadPtr myGamepads[BP32_MAX_GAMEPADS];
 
 // This callback gets called any time a new gamepad is connected.
@@ -96,7 +99,7 @@ QTRSensors qtr;
 // Arduino setup function. Runs in CPU 1
 void setup() {
     // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
-
+        pinMode(LED, OUTPUT);
     // Setup the Bluepad32 callbacks
     BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad);
 
@@ -111,8 +114,10 @@ void setup() {
 	ESP32PWM::allocateTimer(1);
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
+
+    //servo
     servo.setPeriodHertz(50);
-    servo.attach(12, 1000, 2000);
+    servo.attach(13, 1000, 2000);
 
     // Serial.begin(115200);
     // sensor1.setFilterRate(0.1f);
@@ -134,7 +139,26 @@ void loop() {
     // Just call this function in your main loop.
     // The gamepads pointer (the ones received in the callbacks) gets updated
     // automatically.
+
+    //Light
     BP32.update();
+    digitalWrite(LED, HIGH);
+    delay(1000);
+    digitalWrite(LED, LOW);
+    delay(1000);
+
+    //servo (workshop 3)
+    // Code for Motor
+    servo.write(1000);
+    delay(1000);
+    servo.write(2000);
+    delay(1000);
+    // Code for Controller
+    GamepadPtr controller = myGamepads[0];
+    if (controller && controller->isConnected()) {
+        servo.write(((((float) controller->axisY()) / 512.0f) * 500) + 1500);
+    }
+
 
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
