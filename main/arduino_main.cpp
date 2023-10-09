@@ -18,7 +18,7 @@ GIT PUSH (Uploading your changes on the repository) Instruction:
     Open cd robotathon
     git status
     git add main/arduino_main.cpp
-    git commit - m "(Add your message about change in here)"
+    git commit -m "(Add your message about change in here)"
     git push
 ****************************************************************************/
 
@@ -92,7 +92,8 @@ void onDisconnectedGamepad(GamepadPtr gp) {
     }
 }
 
-Servo servo;
+Servo motor1;
+Servo motor2;
 ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
 QTRSensors qtr;
 
@@ -115,9 +116,12 @@ void setup() {
 	ESP32PWM::allocateTimer(2);
 	ESP32PWM::allocateTimer(3);
 
-    //servo
-    servo.setPeriodHertz(50);
-    servo.attach(13, 1000, 2000);
+    //motor
+    motor1.setPeriodHertz(50);
+    motor1.attach(13, 1000, 2000);
+    motor2.setPeriodHertz(50);
+    motor2.attach(12, 1000, 2000);
+    
 
     // Serial.begin(115200);
     // sensor1.setFilterRate(0.1f);
@@ -141,33 +145,47 @@ void loop() {
     // automatically.
 
     //Light
-    BP32.update();
-    digitalWrite(LED, HIGH);
-    delay(1000);
-    digitalWrite(LED, LOW);
-    delay(1000);
+    
+    // digitalWrite(LED, HIGH);
+    // delay(1000);
+    // digitalWrite(LED, LOW);
+    // delay(1000);
 
-    //servo (workshop 3)
-    // Code for Motor
-    servo.write(1000);
-    delay(1000);
-    servo.write(2000);
-    delay(1000);
+    
+    
+
     // Code for Controller
+    BP32.update();
     GamepadPtr controller = myGamepads[0];
+
+    // Code for Motor
+    // if (controller && !(controller->isConnected())) {
+    //     motor1.write(1000);
+    //     delay(1000);
+    //     motor1.write(2000);
+    //     delay(1000);
+    //     motor2.write(-1000);
+    //     delay(1000);
+    //     motor2.write(-2000);
+    //     delay(1000);
+    // }
+    
     if (controller && controller->isConnected()) {
-        servo.write(((((float) controller->axisY()) / 512.0f) * 500) + 1500);
+       
+        motor1.write((((((float) controller->axisY()) / 512.0f) * 500) + 1500));
+        motor2.write((((((float) controller->axisY()) / 512.0f) * -500 ) + 1500));
     }
+    vTaskDelay(1);
 
 
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
-    for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
-        GamepadPtr myGamepad = myGamepads[i];
+    // for (int i = 0; i < BP32_MAX_GAMEPADS; i++) {
+    //     GamepadPtr myGamepad = myGamepads[i];
 
-        if (myGamepad && myGamepad->isConnected()) {
+    //     if (myGamepad && myGamepad->isConnected()) {
 
-            servo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
+    //         servo.write( ((((float) myGamepad->axisY()) / 512.0f) * 500) + 1500 );
 
             // Another way to query the buttons, is by calling buttons(), or
             // miscButtons() which return a bitmask.
@@ -187,10 +205,10 @@ void loop() {
             //     myGamepad->miscButtons()  // bitmak of pressed "misc" buttons
             // );
 
-            // You can query the axis and other properties as well. See Gamepad.h
-            // For all the available functions.
-        }
-    }
+    //         // You can query the axis and other properties as well. See Gamepad.h
+    //         // For all the available functions.
+    //     }
+    // }
 
     // Serial.println(sensor1.getDistanceFloat());
 
@@ -208,6 +226,6 @@ void loop() {
     // if(error == 0){
     //     Serial.println("Straight Ahead");  
     // }
-    vTaskDelay(1);
+    // vTaskDelay(1);
     // delay(100);
 }
