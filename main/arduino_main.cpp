@@ -121,20 +121,22 @@ void setup() {
     motor1.attach(13, 1000, 2000);
     motor2.setPeriodHertz(50);
     motor2.attach(12, 1000, 2000);
-    
+    motor1.write(1500);
+    motor2.write(1500);
 
-    // Serial.begin(115200);
+    // Line Sensor
+    Serial.begin(115200);
     // sensor1.setFilterRate(0.1f);
 
-    // qtr.setTypeRC(); // or setTypeAnalog()
-    // qtr.setSensorPins((const uint8_t[]) {12,13,14}, 3);
-    // for (uint8_t i = 0; i < 250; i++)
-    // {
-    //     Serial.println("calibrating");
-    //     qtr.calibrate();
-    //     delay(20);
-    // }
-    // qtr.calibrate();
+    qtr.setTypeAnalog(); // or setTypeAnalog()
+    qtr.setSensorPins((const uint8_t[]) {36, 39, 34, 35, 32, 33, 25, 26}, 8);
+    for (uint8_t i = 0; i < 50; i++)
+    {
+        Serial.println("calibrating");
+        qtr.calibrate();
+        delay(20);
+    }
+    
 }
 
 // Arduino loop function. Runs in CPU 1
@@ -171,9 +173,9 @@ void loop() {
     // }
     
     if (controller && controller->isConnected()) {
-       
-        motor1.write((((((float) controller->axisY()) / 512.0f) * 500) + 1500));
-        motor2.write((((((float) controller->axisY()) / 512.0f) * -500 ) + 1500));
+       // Controlling motor
+        motor1.write(((((float) controller->axisY()) / 512.0f) * 500) + 1500);
+        motor2.write(((((float) controller->axisY()) / 512.0f) * -500 ) + 1500);
     }
     vTaskDelay(1);
 
@@ -211,21 +213,28 @@ void loop() {
     // }
 
     // Serial.println(sensor1.getDistanceFloat());
+    
+    // Line Sensor
+    uint16_t sensors[3];
+    int16_t position = qtr.readLineBlack(sensors);
+    int16_t error = position - 3500;
+    Serial.println(position);
 
-    // uint16_t sensors[3];
-    // int16_t position = qtr.readLineBlack(sensors);
-    // int16_t error = position - 1000;
-    // if (error < 0)
-    // {
-    //     Serial.println("On the left");
-    // }
-    // if (error > 0)
-    // {
-    //     Serial.println("On the right");
-    // }
-    // if(error == 0){
-    //     Serial.println("Straight Ahead");  
-    // }
-    // vTaskDelay(1);
-    // delay(100);
-}
+    if (error < 0)
+    {
+        Serial.println("On the left");
+        motor2.write(1600);
+        motor1.write(1700);
+    }
+    if (error > 0)
+    {
+        Serial.println("On the right");
+        motor1.write(1600);
+        motor2.write(1700);
+    }
+    if(error == 0){
+        Serial.println("Straight Ahead"); 
+        motor1.write(1600);
+        motor2.write(1600); 
+    }
+    vTaskDelay(1);}
