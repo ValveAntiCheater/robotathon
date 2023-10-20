@@ -120,7 +120,7 @@ void setup() {
     motor1.setPeriodHertz(50);
     motor1.attach(13, 1000, 2000);
     motor2.setPeriodHertz(50);
-    motor2.attach(12, 1000, 2000);
+    motor2.attach(14, 1000, 2000);
     motor1.write(1500);
     motor2.write(1500);
 
@@ -153,29 +153,20 @@ void loop() {
     // digitalWrite(LED, LOW);
     // delay(1000);
 
-    
-    
-
     // Code for Controller
     BP32.update();
     GamepadPtr controller = myGamepads[0];
 
     // Code for Motor
-    // if (controller && !(controller->isConnected())) {
-    //     motor1.write(1000);
-    //     delay(1000);
-    //     motor1.write(2000);
-    //     delay(1000);
-    //     motor2.write(-1000);
-    //     delay(1000);
-    //     motor2.write(-2000);
-    //     delay(1000);
-    // }
+    
+    // motor1.write(1500);
+    // motor2.write(1500);
+    
     
     if (controller && controller->isConnected()) {
        // Controlling motor
         motor1.write(((((float) controller->axisY()) / 512.0f) * 500) + 1500);
-        motor2.write(((((float) controller->axisY()) / 512.0f) * -500 ) + 1500);
+        motor2.write(((((float) controller->axisY()) / 512.0f) * 500 ) + 1500);
     }
     vTaskDelay(1);
 
@@ -214,7 +205,7 @@ void loop() {
 
     // Serial.println(sensor1.getDistanceFloat());
     
-    // Line Sensor
+    // Line Sensor 
     uint16_t sensors[3];
     int16_t position = qtr.readLineBlack(sensors);
     int16_t error = position - 3500;
@@ -223,18 +214,19 @@ void loop() {
     if (error < 0)
     {
         Serial.println("On the left");
-        motor2.write(1600);
-        motor1.write(1700);
+        motor2.write(1500);
+        motor1.write(1600);
     }
     if (error > 0)
     {
         Serial.println("On the right");
-        motor1.write(1600);
-        motor2.write(1700);
+        motor1.write(1500);
+        motor2.write(1600);
     }
     if(error == 0){
         Serial.println("Straight Ahead"); 
-        motor1.write(1600);
-        motor2.write(1600); 
+        motor1.write(1700);
+        motor2.write(1700); 
     }
-    vTaskDelay(1);}
+    vTaskDelay(1);
+    }
