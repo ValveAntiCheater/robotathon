@@ -118,6 +118,7 @@ void onDisconnectedGamepad(GamepadPtr gp) {
 
 Servo motor1;
 Servo motor2;
+Servo arm;
 ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
 QTRSensors qtr;
 
@@ -145,6 +146,8 @@ void setup() {
     motor1.attach(13, 1000, 2000);
     motor2.setPeriodHertz(50);
     motor2.attach(14, 1000, 2000);
+    arm.setPeriodHertz(50);
+    arm.attach(, 1000, 2000);
     // motor1.write(1500);
     // motor2.write(1500);
 
@@ -284,13 +287,13 @@ void loop() {
     Serial.print("AMBIENT: ");
     Serial.println(a);*/
 
-    //IR (Distance) Sensor
-    Serial.println(leftSensor.getDistanceFloat());
-    delay(500)
-    Serial.println(rightSensor.getDistanceFloat());
-    delay(500)
-    Serial.println(centerSensor.getDistanceFloat());
-    delay(500)
+    // //IR (Distance) Sensor
+    // Serial.println(leftSensor.getDistanceFloat());
+    // delay(500);
+    // Serial.println(rightSensor.getDistanceFloat());
+    // delay(500);
+    // Serial.println(centerSensor.getDistanceFloat());
+    // delay(500);
 
 
     }
