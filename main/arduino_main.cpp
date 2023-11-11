@@ -34,6 +34,30 @@ GIT PUSH (Uploading your changes on the repository) Instruction:
 #include <ESP32SharpIR.h>
 #include <QTRSensors.h>
 
+//Color Sensor headers
+#include <Wire.h>
+#include <Arduino_APDS9960.h>
+#include <bits/stdc++.h>
+
+//Color sensor definitions
+#define APDS9960_INT 2
+#define I2C_SDA 21
+#define I2C_SCL 22
+#define I2C_FREQ 100000
+
+//Color sensor unit & I2C unit
+TwoWire I2C_0 = TwoWire(0);
+APDS9960 apds = APDS9960(I2C_0, APDS9960_INT);
+
+//IR sensor (Distance) header
+#include <ESP32SharpIR.h>
+
+// Distance Sensor unit
+ESP32SharpIR leftSensor(ESP32SharpIR::GP2Y0A21YK0F, 18);
+ESP32SharpIR rightSensor(ESP32SharpIR::GP2Y0A21YK0F, 19);
+ESP32SharpIR centerSensor(ESP32SharpIR::GP2Y0A21YK0F, 17);
+
+
 //
 // README FIRST, README FIRST, README FIRST
 //
@@ -121,8 +145,8 @@ void setup() {
     motor1.attach(13, 1000, 2000);
     motor2.setPeriodHertz(50);
     motor2.attach(14, 1000, 2000);
-    motor1.write(1500);
-    motor2.write(1500);
+    // motor1.write(1500);
+    // motor2.write(1500);
 
     // Line Sensor
     Serial.begin(115200);
@@ -136,6 +160,19 @@ void setup() {
         qtr.calibrate();
         delay(20);
     }
+
+    //Sets up I2C protocol
+    I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
+
+    // Set up color sensor
+    apds.setInterruptPin(APDS9960_INT);
+    apds.begin();
+    Serial.begin(115200);
+
+    //IR (Distance) Sensor Setup
+    leftSensor.setFilterRate(0.1f);
+    rightSensor.setFilterRate(0.1f);
+    centerSensor.setFilterRate(0.1f);
     
 }
 
@@ -147,8 +184,7 @@ void loop() {
     // automatically.
 
     //Light
-    
-    // digitalWrite(LED, HIGH);
+    digitalWrite(LED, HIGH);
     // delay(1000);
     // digitalWrite(LED, LOW);
     // delay(1000);
@@ -159,8 +195,8 @@ void loop() {
 
     // Code for Motor
     
-    // motor1.write(1500);
-    // motor2.write(1500);
+    // motor1.write(1600);
+    // motor2.write(1400);
     
     
     if (controller && controller->isConnected()) {
@@ -221,12 +257,40 @@ void loop() {
     {
         Serial.println("On the right");
         motor1.write(1500);
-        motor2.write(1600);
+        motor2.write(1400);
     }
     if(error == 0){
         Serial.println("Straight Ahead"); 
         motor1.write(1700);
-        motor2.write(1700); 
+        motor2.write(1300); 
     }
     vTaskDelay(1);
+
+    //Color Sensor
+    /*int r, g, b, a;
+    //Wait until color is read from the sensor
+    while (!apds.colorAvailable()) {
+        delay(5);
+    }
+    // Read color from sensor
+    apds.readColor(r, g, b, a);
+    // Print color in decimal
+    Serial.print("RED: ");
+    Serial.println(r);
+    Serial.print("GREEN: ");
+    Serial.println(g);
+    Serial.print("BLUE: ");
+    Serial.println(b);
+    Serial.print("AMBIENT: ");
+    Serial.println(a);*/
+
+    //IR (Distance) Sensor
+    Serial.println(leftSensor.getDistanceFloat());
+    delay(500)
+    Serial.println(rightSensor.getDistanceFloat());
+    delay(500)
+    Serial.println(centerSensor.getDistanceFloat());
+    delay(500)
+
+
     }
