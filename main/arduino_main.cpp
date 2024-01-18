@@ -52,10 +52,7 @@ APDS9960 apds = APDS9960(I2C_0, APDS9960_INT);
 //IR sensor (Distance) header
 #include <ESP32SharpIR.h>
 
-// Distance Sensor unit
-ESP32SharpIR leftSensor(ESP32SharpIR::GP2Y0A21YK0F, 18);
-ESP32SharpIR rightSensor(ESP32SharpIR::GP2Y0A21YK0F, 19);
-ESP32SharpIR centerSensor(ESP32SharpIR::GP2Y0A21YK0F, 17);
+
 
 
 //
@@ -119,13 +116,16 @@ void onDisconnectedGamepad(GamepadPtr gp) {
 Servo motor1;
 Servo motor2;
 Servo arm;
-ESP32SharpIR sensor1( ESP32SharpIR::GP2Y0A21YK0F, 27);
 QTRSensors qtr;
+// Distance Sensor unit
+ESP32SharpIR leftSensor(ESP32SharpIR::GP2Y0A21YK0F, 36);
+ESP32SharpIR rightSensor(ESP32SharpIR::GP2Y0A21YK0F, 25);
+ESP32SharpIR centerSensor(ESP32SharpIR::GP2Y0A21YK0F, 39);
 
 // Arduino setup function. Runs in CPU 1
 void setup() {
     // Console.printf("Firmware: %s\n", BP32.firmwareVersion());
-        pinMode(LED, OUTPUT);
+    pinMode(2, OUTPUT);
     // Setup the Bluepad32 callbacks
     BP32.setup(&onConnectedGamepad, &onDisconnectedGamepad);
 
@@ -147,7 +147,7 @@ void setup() {
     motor2.setPeriodHertz(50);
     motor2.attach(14, 1000, 2000);
     arm.setPeriodHertz(50);
-    arm.attach(, 1000, 2000);
+    arm.attach(15, 1000, 2000);
     // motor1.write(1500);
     // motor2.write(1500);
 
@@ -156,14 +156,14 @@ void setup() {
     // sensor1.setFilterRate(0.1f);
 
     qtr.setTypeAnalog(); // or setTypeAnalog()
-    qtr.setSensorPins((const uint8_t[]) {36, 39, 34, 35, 32, 33, 25, 26}, 8);
-    for (uint8_t i = 0; i < 50; i++)
+    qtr.setSensorPins((const uint8_t[]) {26, 34, 35, 32, 33, 27}, 6);
+    for (uint8_t i = 0; i < 110; i++)
     {
         Serial.println("calibrating");
         qtr.calibrate();
         delay(20);
     }
-
+    Serial.println("DONE CALIBRATING");
     //Sets up I2C protocol
     I2C_0.begin(I2C_SDA, I2C_SCL, I2C_FREQ);
 
@@ -187,10 +187,7 @@ void loop() {
     // automatically.
 
     //Light
-    digitalWrite(LED, HIGH);
-    // delay(1000);
-    // digitalWrite(LED, LOW);
-    // delay(1000);
+    digitalWrite(2, HIGH);
 
     // Code for Controller
     BP32.update();
@@ -200,15 +197,353 @@ void loop() {
     
     // motor1.write(1600);
     // motor2.write(1400);
+
     
-    
+
+        
     if (controller && controller->isConnected()) {
        // Controlling motor
-        motor1.write(((((float) controller->axisY()) / 512.0f) * 500) + 1500);
-        motor2.write(((((float) controller->axisY()) / 512.0f) * 500 ) + 1500);
-    }
-    vTaskDelay(1);
+        if (controller->axisY() < -20 or controller->axisY() > 20)
+        {
+            // Go straight
+            motor1.write(((((float) controller->axisY()) / 512.0f) * 250) + 1500);
+            motor2.write(((((float) controller->axisY()) / 512.0f) * -250 ) + 1500);
+        }
+        else if (controller->axisRY() < -20 or controller->axisRY() > 20)
+        {
+            // For turning
+            motor1.write(((((float) controller->axisRY()) / 512.0f) * 250) + 1500);
+            motor2.write(((((float) controller->axisRY()) / 512.0f) * 250 ) + 1500);
+        }
+        else
+        {
+            motor1.write(1500);
+            motor2.write(1500);
+        }
+        // Moving Arm
+        if (controller->dpad() != 0)
+        {
+            arm.write(1700);
+            delay(800);
+            arm.write(1500);
+            delay(2000);
+            arm.write(1300);
+            delay(800);
+            arm.write(1500);
+        }
+        if (controller->x()){
+            // Maze subroutine
+                Serial.println("Y PRESSED: ENTERING MAZE SUBROUTINE");
+                while(1){
+                        BP32.update();
+                        float left = leftSensor.getDistanceFloat();
+                        float right = rightSensor.getDistanceFloat();
+                        float center = centerSensor.getDistanceFloat();
+                        motor1.write(1400);
+                        motor2.write(1600);
+                        if (left > right)
+                        {
+                            motor1.write(1400);
+                            motor2.write(1620 + (left - right));
+                        }
+                        if (right > left)
+                        {
+                            motor1.write(1380 - (right - left));
+                            motor2.write(1600);
+                        }
+                        if (center < 10)
+                        {
+                            Serial.println("TURNING TURNING TURNING");
+                            Serial.println("RIGHT:");
+                            Serial.println(right);
+                            Serial.println("LEFT");
+                            Serial.println(left);
+                            if (right > 15 && left < 15)
+                            {
+                                motor1.write(1400);
+                                motor2.write(1400);
+                                delay(1650);
+                            }
+                            else if (right < 15 && left > 15)
+                            {
+                                motor1.write(1600);
+                                motor2.write(1600);
+                                delay(1650);
+                            }
+                        }
+                        // //IR (Distance) Sensor
+                        // Serial.println("LEFT");
+                        // Serial.println(leftSensor.getDistanceFloat());
+                        // delay(5);
+                        // Serial.println("RIGHT");
+                        // Serial.println(rightSensor.getDistanceFloat());
+                        // delay(5);
+                        // Serial.println("CENTER");
+                        // Serial.println(centerSensor.getDistanceFloat());
+                        // delay(5);
+                        if (controller->a()){
+                            Serial.println("B PRESSED: EXITING MAZE SUBROUTINE");
+                            break;
+                        }
+                }      
+        }
+        if (controller->y()){
+            // Line following subroutine 
+            Serial.println("X PRESSED: ENTERING LINE SUBROUTINE");
+            while(1){
+                BP32.update();
+                uint16_t sensors[3];
+                int16_t position = qtr.readLineBlack(sensors);
+                int16_t error = position - 2500;
+                Serial.println(position);
+                Serial.println(error);
+                delay(500);
 
+                if (error <= -50)
+                {
+                    Serial.println("On the left");
+                    motor1.write(1400);
+                    motor2.write(1500);
+                }
+                if (error >= 50)
+                {
+                    Serial.println("On the right");
+                    motor1.write(1500);
+                    motor2.write(1600);
+                }
+                if(error > -50 && error < 50){
+                    Serial.println("Straight Ahead"); 
+                    motor1.write(1400);
+                    motor2.write(1600); 
+                }
+                vTaskDelay(1);
+                if (controller->a()){
+                    Serial.println("B PRESSED: EXITING LINE SUBROUTINE");
+                    break;
+                }
+            }
+                
+        }
+        if (controller->b()){
+            // int r,g,b,a;
+            // while(1)
+            // {
+            //     while (!apds.colorAvailable())
+            //     {
+            //         delay(5);
+            //     }
+            //     apds.readColor(r,g,b,a);
+            //     Serial.println("RED:");
+            //     Serial.println(r);
+            //     Serial.println("GREEN:");
+            //     Serial.println(g);
+            //     Serial.println("BLUE:");
+            //     Serial.println(b);
+            //     Serial.println("AMB");
+            //     Serial.println(a);
+            //     delay(200);
+            //     if(controller->a()){
+            //         Serial.println("B PRESSED: EXITING COLOR SUBROUTINE");
+            //         digitalWrite(LED, HIGH);
+            //         break;
+            //     }
+
+            // }
+    
+
+            // Color subroutine
+            Serial.println("A PRESSED: ENTERING COLOR SUBROUTINE");
+            motor1.write(1700);
+            motor2.write(1300);
+            delay(750);
+            motor1.write(1500);
+            motor2.write(1500);
+            delay(500);
+            motor1.write(1700);
+            motor2.write(1300);
+            delay(2500);
+            // int col = 0;
+            // int sum = 0;
+            // int r,g,b,a;
+            // while (!apds.colorAvailable()) {
+            //         delay(5);
+            //     }
+            //     apds.readColor(r, g, b, a);
+            //     int thresh = a;
+            //     int whitesum = r+g+b+a;
+            // int terror = a-thresh;
+            // int sumerror = r+g+b+a-whitesum;
+            // int botherror = terror+sumerror;
+            // while (botherror > 10 && botherror < -10)
+            // {
+            //     while (!apds.colorAvailable()) {
+            //         delay(5);
+            //     }
+            //     apds.readColor(r, g, b, a);
+            //     int terror = a-thresh;
+            //     int sumerror = r+g+b+a-whitesum;
+            //     botherror = terror+sumerror;
+            //     motor1.write(1550);
+            //     motor2.write(1450);
+                
+            // }
+            // delay(50);
+            // Serial.println("COLOR DETECTED HERE");
+            // while (!apds.colorAvailable()) {
+            //     delay(5);
+            // }
+            // apds.readColor(r, g, b, a);
+            // if (r > g && r > b)
+            //     {
+            //         //red
+            //         Serial.println("RED");
+            //         col = -1;
+            //         digitalWrite(LED, LOW);
+            //         delay(500);
+            //         digitalWrite(LED, HIGH);
+            //     }
+            //     else if (g > r && g > b)
+            //     {
+            //         //green
+            //         Serial.println("GREEN");
+            //         col = 0;
+            //         digitalWrite(LED, LOW);
+            //         delay(250);
+            //         digitalWrite(LED, HIGH);
+            //         delay(500);
+            //         digitalWrite(LED, LOW);
+            //         delay(500);
+            //         digitalWrite(LED, HIGH);
+            //     }
+            //     else if (b > r && b > g)
+            //     {
+            //         //blue
+            //         Serial.println("BLUE");
+            //         col = 1;
+            //         digitalWrite(LED, LOW);
+            //         delay(250);
+            //         digitalWrite(LED, HIGH);
+            //         delay(500);
+            //         digitalWrite(LED, LOW);
+            //         delay(250);
+            //         digitalWrite(LED, HIGH);
+            //         delay(500);
+            //         digitalWrite(LED, LOW);
+            //         delay(500);
+            //         digitalWrite(LED, HIGH);
+            //     }
+            //     while (1)
+            //     {
+            //         while (!apds.colorAvailable()) {
+            //         delay(5);
+            //         }
+            //         apds.readColor(r, g, b, a);
+            //         if (col < 0)
+            //         {
+            //             motor1.write(1550);
+            //             motor2.write(1450);
+            //             if (r * 1.5 > g && r * 1.5 > b)
+            //             {
+            //                 motor1.write(1500);
+            //                 motor2.write(1500);
+            //                 break;
+            //             }
+            //         }
+            //         if (col == 0)
+            //         {
+            //             motor1.write(1550);
+            //             motor2.write(1450);
+            //             if (g * 1.5 > r && g * 1.5 > b)
+            //             {
+            //                 motor1.write(1500);
+            //                 motor2.write(1500);
+            //                 break;
+            //             }
+            //         }
+            //         if (col > 0)
+            //         {
+            //             motor1.write(1550);
+            //             motor2.write(1450);
+            //             if (b * 1.5 > r && b * 1.5 > g)
+            //             {
+            //                 motor1.write(1500);
+            //                 motor2.write(1500);
+            //                 break;
+            //             }
+            //         }
+            //     }
+                // Wait until color is read from the sensor
+
+                // Read color from sensor
+                // while(1){
+                // while (!apds.colorAvailable()) {
+                //     delay(5);
+                // }
+                // apds.readColor(r, g, b, a);
+                // Serial.print("RED: ");
+                // Serial.println(r);
+                // Serial.print("GREEN: ");
+                // Serial.println(g);
+                // Serial.print("BLUE: ");
+                // Serial.println(b);
+                // Serial.print("AMBIENT: ");
+                // Serial.println(a);
+                // delay(500);
+                // }
+                
+                // Serial.println("THRESHA:");
+                // Serial.println(thresh);
+                // // Print color in decimal
+                
+            // while (a < thresh)
+            // {
+            //     while (!apds.colorAvailable()) {
+            //         delay(5);
+            //     }
+            //     apds.readColor(r, g, b, a);
+            //     motor1.write(1550);
+            //     motor2.write(1450);
+            // }
+            // Serial.println("DONE WITH COLOR");
+            // while(1){
+            //     BP32.update();
+            //     while (!apds.colorAvailable()) {
+            //         delay(5);
+            //     }
+            //     // Read color from sensor
+            //     apds.readColor(r, g, b, a);
+            //     motor1.write(1550);
+            //     motor2.write(1450);
+            //     int comp = r+g+b+a;
+            //     int diff = sum-comp;
+            //     Serial.println("diff:");
+            //     Serial.println(diff);
+            //     if (diff > -10 && diff < 10)
+            //     {
+            //         motor1.write(1500);
+            //         motor2.write(1500);
+            //         break;
+            //     }
+            //     if(controller->a()){
+            //         Serial.println("B PRESSED: EXITING COLOR SUBROUTINE");
+            //         digitalWrite(LED, HIGH);
+            //         break;
+            //     }            
+                // Serial.print("RED: ");
+                // Serial.println(r);
+                // Serial.print("GREEN: ");
+                // Serial.println(g);
+                // Serial.print("BLUE: ");
+                // Serial.println(b);
+                // Serial.print("AMBIENT: ");
+                // Serial.println(a);
+           }
+     }
+    
+    
+    
+    // vTaskDelay(1);
+    
 
     // It is safe to always do this before using the gamepad API.
     // This guarantees that the gamepad is valid and connected.
@@ -244,30 +579,7 @@ void loop() {
 
     // Serial.println(sensor1.getDistanceFloat());
     
-    // Line Sensor 
-    uint16_t sensors[3];
-    int16_t position = qtr.readLineBlack(sensors);
-    int16_t error = position - 3500;
-    Serial.println(position);
 
-    if (error < 0)
-    {
-        Serial.println("On the left");
-        motor2.write(1500);
-        motor1.write(1600);
-    }
-    if (error > 0)
-    {
-        Serial.println("On the right");
-        motor1.write(1500);
-        motor2.write(1400);
-    }
-    if(error == 0){
-        Serial.println("Straight Ahead"); 
-        motor1.write(1700);
-        motor2.write(1300); 
-    }
-    vTaskDelay(1);
 
     //Color Sensor
     /*int r, g, b, a;
@@ -287,13 +599,7 @@ void loop() {
     Serial.print("AMBIENT: ");
     Serial.println(a);*/
 
-    // //IR (Distance) Sensor
-    // Serial.println(leftSensor.getDistanceFloat());
-    // delay(500);
-    // Serial.println(rightSensor.getDistanceFloat());
-    // delay(500);
-    // Serial.println(centerSensor.getDistanceFloat());
-    // delay(500);
+}
 
-
-    }
+    
+    
